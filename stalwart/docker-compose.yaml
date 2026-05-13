@@ -1,0 +1,47 @@
+services:
+  stalwart:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: stalwart-mail:local
+    container_name: stalwart
+    hostname: mail.example.test
+    restart: unless-stopped
+
+    environment:
+      TZ: Africa/Casablanca
+      STALWART_PUBLIC_URL: http://127.0.0.1:8080
+      STALWART_RECOVERY_ADMIN: admin:ChangeThisStrongPassword123!
+
+    ports:
+      - "8080:8080" # Local setup/admin UI: http://127.0.0.1:8080/admin
+      - "443:443"   # HTTPS admin/JMAP once DNS/TLS is configured
+      - "25:25"     # SMTP
+      - "587:587"   # Message submission
+      - "465:465"   # SMTPS
+      - "143:143"   # IMAP
+      - "993:993"   # IMAPS
+      - "110:110"   # POP3
+      - "995:995"   # POP3S
+      - "4190:4190" # ManageSieve
+
+    volumes:
+      - stalwart-etc:/etc/stalwart
+      - stalwart-data:/var/lib/stalwart
+
+    networks:
+      - odoo_shared_network
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  odoo_shared_network:
+    external: true
+
+volumes:
+  stalwart-etc:
+  stalwart-data:

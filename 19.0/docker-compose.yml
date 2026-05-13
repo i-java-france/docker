@@ -44,6 +44,7 @@ services:
     command: odoo -c /etc/odoo/odoo.conf
     networks:
       - odoo_network
+      - odoo_shared_network
     restart: unless-stopped
 
 volumes:
@@ -53,3 +54,5 @@ volumes:
 networks:
   odoo_network:
     driver: bridge
+  odoo_shared_network:
+    external: true
