@@ -1,18 +1,43 @@
 terraform {
+  cloud {
+    organization = "REPLACE_WITH_YOUR_ORG"
+
+    workspaces {
+      name = "REPLACE_WITH_YOUR_WORKSPACE"
+    }
+  }
   required_providers {
     hcloud = {
-      source = "hetznercloud/hcloud"
-    version = "1.54.0" }
+      source  = "hetznercloud/hcloud"
+      version = "1.54.0"
+    }
   }
 }
 
+variable "hcloud_token" {
+  description = "Hetzner Cloud API token"
+  type        = string
+  sensitive   = true
+}
+
+variable "ssh_public_key" {
+  description = "Public SSH key for Dokploy"
+  type        = string
+}
+
+variable "ssh_private_key" {
+  description = "Private SSH key for Dokploy provisioning"
+  type        = string
+  sensitive   = true
+}
+
 provider "hcloud" {
-  token = file("hetzner-token.txt")
+  token = var.hcloud_token
 }
 
 resource "hcloud_ssh_key" "dokploy_ssh_key" {
   name       = "dokploy_ssh_key"
-  public_key = file("~/.ssh/dokploy/id_ed25519.pub")
+  public_key = var.ssh_public_key
 }
 
 data "hcloud_primary_ip" "dokploy-ip" {
@@ -36,7 +61,7 @@ resource "hcloud_server" "dokploy" {
     connection {
       type        = "ssh"
       user        = "root"
-      private_key = file("~/.ssh/dokploy/id_ed25519")
+      private_key = var.ssh_private_key
       host        = self.ipv4_address
     }
     inline = [
@@ -49,7 +74,7 @@ resource "hcloud_server" "dokploy" {
     connection {
       type        = "ssh"
       user        = "root"
-      private_key = file("~/.ssh/dokploy/id_ed25519")
+      private_key = var.ssh_private_key
       host        = self.ipv4_address
     }
     source      = "./ssh_init.sh"
@@ -60,7 +85,7 @@ resource "hcloud_server" "dokploy" {
     connection {
       type        = "ssh"
       user        = "root"
-      private_key = file("~/.ssh/dokploy/id_ed25519")
+      private_key = var.ssh_private_key
       host        = self.ipv4_address
     }
 

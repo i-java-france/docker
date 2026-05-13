@@ -25,6 +25,40 @@ Additionally:
 
 - **Server hardening and added security**: SSH is hardened and root login is disabled by default. Only clients with the configured SSH key can access the server. To skip this step, remove the remote-exec line that runs `ssh_init.sh` in `main.tf`.
 
+## CI/CD with GitHub Actions
+
+This project includes automated workflows for infrastructure and application testing.
+
+### Terraform CI/CD
+
+The `.github/workflows/terraform.yml` workflow automates the following:
+- **Pull Requests**: Runs `terraform fmt`, `terraform validate`, and `terraform plan`. The plan output is posted as a comment on the PR.
+- **Main Branch Push**: Runs `terraform apply` to automatically deploy changes to Hetzner Cloud.
+
+#### Setup Requirements
+
+1. **Terraform Cloud**:
+   - Create an account at [app.terraform.io](https://app.terraform.io/).
+   - Create an organization and a workspace.
+   - Update `main.tf` with your organization and workspace names:
+     ```hcl
+     cloud {
+       organization = "YOUR_ORG"
+       workspaces {
+         name = "YOUR_WORKSPACE"
+       }
+     }
+     ```
+2. **GitHub Secrets**:
+   - `TF_API_TOKEN`: Your Terraform Cloud API token.
+   - `HCLOUD_TOKEN`: Your Hetzner Cloud API token.
+   - `SSH_PUBLIC_KEY`: The public SSH key for the server.
+   - `SSH_PRIVATE_KEY`: The private SSH key (used by Terraform for provisioning).
+
+### Odoo Image Testing
+
+The `.github/workflows/odoo-test.yml` workflow automatically builds the Docker images for Odoo 17.0, 18.0, and 19.0 on every push or PR that modifies their respective directories. This ensures that your custom changes don't break the build.
+
 ## Table of Contents
 
 - [Default VPS Configuration](#default-vps-configuration)

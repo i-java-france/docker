@@ -1,0 +1,37 @@
+name: "Odoo Images Test"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '17.0/**'
+      - '18.0/**'
+      - '19.0/**'
+  pull_request:
+    paths:
+      - '17.0/**'
+      - '18.0/**'
+      - '19.0/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ['17.0', '18.0', '19.0']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Odoo ${{ matrix.version }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.version }}
+          push: false
+          tags: odoo:${{ matrix.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
