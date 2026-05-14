@@ -42,9 +42,9 @@ data "hcloud_primary_ip" "dokploy_ip" {
 
 resource "hcloud_server" "dokploy" {
   name         = "dokploy"
-  server_type  = "cx22"
-  image        = "docker-ce"
-  location     = "fsn1"
+  server_type  = "cx23"  # Changed from cx22 to cpx11 (cheapest ARM server)
+  image        = "ubuntu-24.04"
+  location     = "nbg1"
   ssh_keys     = [data.hcloud_ssh_key.dokploy.id]
   firewall_ids = []
 
