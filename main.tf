@@ -20,11 +20,6 @@ variable "hcloud_token" {
   sensitive   = true
 }
 
-variable "ssh_public_key" {
-  description = "Public SSH key for Dokploy"
-  type        = string
-}
-
 variable "ssh_private_key" {
   description = "Private SSH key for Dokploy provisioning"
   type        = string
@@ -35,22 +30,22 @@ provider "hcloud" {
   token = var.hcloud_token
 }
 
-resource "hcloud_ssh_key" "dokploy_ssh_key" {
-  name       = "dokploy_ssh_key"
-  public_key = var.ssh_public_key
+# Use existing SSH key from Hetzner Cloud
+data "hcloud_ssh_key" "dokploy" {
+  name = "dokploy"
 }
 
 # Use the existing primary IP
 data "hcloud_primary_ip" "dokploy_ip" {
-  name = "primary_ip-1"  # Changed to match your actual IP name
+  name = "primary_ip-1"
 }
 
 resource "hcloud_server" "dokploy" {
   name         = "dokploy"
-  server_type  = "cx22"  # Changed from cx23 (doesn't exist) to cx22
+  server_type  = "cx22"
   image        = "docker-ce"
   location     = "fsn1"
-  ssh_keys     = [hcloud_ssh_key.dokploy_ssh_key.id]
+  ssh_keys     = [data.hcloud_ssh_key.dokploy.id]
   firewall_ids = []
 
   public_net {
@@ -64,33 +59,6 @@ resource "hcloud_server" "dokploy" {
     command = "sleep 30"
   }
 
-  # Create directory first
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "root"
-      private_key = var.ssh_private_key
-      host        = self.ipv4_address
-      timeout     = "5m"
-    }
-    inline = [
-      "mkdir -p /opt/dokploy"
-    ]
-  }
-
-  # Copy scripts
-  provisioner "file" {
-    connection {
-      type        = "ssh"
-      user        = "root"
-      private_key = var.ssh_private_key
-      host        = self.ipv4_address
-      timeout     = "5m"
-    }
-    source      = "${path.module}/ssh_init.sh"
-    destination = "/opt/dokploy/ssh_init.sh"
-  }
-
   # Execute installation
   provisioner "remote-exec" {
     connection {
@@ -102,9 +70,12 @@ resource "hcloud_server" "dokploy" {
     }
 
     inline = [
-      "chmod +x /opt/dokploy/ssh_init.sh",
-      "sh /opt/dokploy/ssh_init.sh",
-      "rm -rf /opt/dokploy",
+      # SSH hardening
+      "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config",
+      "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config",
+      "sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config",
+      "systemctl restart ssh.service",
+      # Install Dokploy
       "curl -sSL https://dokploy.com/install.sh | sh"
     ]
   }
