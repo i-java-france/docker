@@ -1,9 +1,9 @@
 terraform {
   cloud {
-    organization = "REPLACE_WITH_YOUR_ORG"
+    organization = "i-java-france"
 
     workspaces {
-      name = "REPLACE_WITH_YOUR_WORKSPACE"
+      name = "docker"
     }
   }
   required_providers {
@@ -15,7 +15,7 @@ terraform {
 }
 
 variable "hcloud_token" {
-  description = "Hetzner Cloud API token"
+  description = "HmuNE2KcDOgkEtnj5XHdVVHyZOVFQUBErM0FNGDFTz3e1elHzKwZ2CnxAtarX7aS"
   type        = string
   sensitive   = true
 }
@@ -41,7 +41,7 @@ resource "hcloud_ssh_key" "dokploy_ssh_key" {
 }
 
 data "hcloud_primary_ip" "dokploy-ip" {
-  name = "dokploy-ip"
+  name = "primary_ip-1"
 }
 
 resource "hcloud_server" "dokploy" {
