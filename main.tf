@@ -21,7 +21,7 @@ variable "hcloud_token" {
 }
 
 variable "ssh_private_key" {
-  description = "Private SSH key for Coolify provisioning"
+  description = "Private SSH key for server provisioning"
   type        = string
   sensitive   = true
 }
@@ -31,12 +31,12 @@ provider "hcloud" {
 }
 
 # Use existing SSH key from Hetzner Cloud
-data "hcloud_ssh_key" "coolify" {
-  name = "dokploy"  # Reusing existing SSH key
+data "hcloud_ssh_key" "server_key" {
+  name = "dokploy"
 }
 
 # Use the existing primary IP
-data "hcloud_primary_ip" "coolify_ip" {
+data "hcloud_primary_ip" "server_ip" {
   name = "primary_ip-1"
 }
 
@@ -45,13 +45,17 @@ resource "hcloud_server" "coolify" {
   server_type  = "cx23"
   image        = "ubuntu-24.04"
   location     = "nbg1"
-  ssh_keys     = [data.hcloud_ssh_key.coolify.id]
+  ssh_keys     = [data.hcloud_ssh_key.server_key.id]
   firewall_ids = []
 
   public_net {
     ipv4_enabled = true
-    ipv4         = data.hcloud_primary_ip.coolify_ip.id
+    ipv4         = data.hcloud_primary_ip.server_ip.id
     ipv6_enabled = true
+  }
+
+  lifecycle {
+    create_before_destroy = false
   }
 
   # Wait for server to be ready
@@ -73,12 +77,13 @@ resource "hcloud_server" "coolify" {
       # Update system
       "apt-get update",
       
-      # Remove Dokploy if it exists
+      # Stop and remove all Docker containers
       "if command -v docker &> /dev/null; then",
       "  docker stop $(docker ps -aq) 2>/dev/null || true",
       "  docker rm $(docker ps -aq) 2>/dev/null || true",
-      "  docker volume rm $(docker volume ls -q) 2>/dev/null || true",
-      "  docker network rm $(docker network ls -q) 2>/dev/null || true",
+      "  docker volume prune -af 2>/dev/null || true",
+      "  docker network prune -f 2>/dev/null || true",
+      "  docker system prune -af 2>/dev/null || true",
       "fi",
       
       # Remove Dokploy data directories
@@ -87,11 +92,11 @@ resource "hcloud_server" "coolify" {
       
       # SSH hardening
       "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config",
-      "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config",  # Keep as yes for Coolify
+      "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config",
       "sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config",
       "systemctl restart ssh.service",
       
-      # Install Coolify (works with Ubuntu 24.04 LTS)
+      # Install Coolify
       "curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash"
     ]
   }
